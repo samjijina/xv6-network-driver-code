@@ -13,6 +13,7 @@
 #include "fs.h"
 #include "file.h"
 #include "fcntl.h"
+#include "select.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -439,3 +440,47 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+/* This system call looks for fds within its sets that are ready to read or write.
+ * If any fd is ready, it returns immediately with the returned sets containing
+ * the fds that are ready. On the other hand, if none are ready it sleeps on all the
+ * fds passed in until at least one is ready.
+ *
+ * Requirements:
+ *
+ * 1. Verify each fd passed in in the two sets is open and valid. If not, skip it.
+ * 2. If an fd is in a set, call filereadable/writeable on it to check if it
+ *    readable or writeable.
+ * 3. If none of the fds are readable/writeable, call fileselect on each one to
+ *    set your wakeup call on that fd.
+ * 4. Go to sleep on your select channel.
+ * 5. Once you wakeup, go back to step 1 and repeat. At least one should be readable/writeable now.
+ * 6. Make sure to call fileclrsel to clear any remaining wakeup calls before you return.
+ * 7. Be sure you have turned off any bits in the sets that are not readable/writeable before returning.
+ */
+int
+sys_select(void)
+{
+    int nfds;
+    fd_set *readfds, *writefds, retreadfds, retwritefds;
+    FD_ZERO(&retreadfds);
+    FD_ZERO(&retwritefds);
+
+    if (argint(0, (void*)&nfds) < 0)
+        return -1;
+    if (argptr(1, (void*)&readfds, sizeof(readfds)) < 0)
+        return -1;
+    if (argptr(2, (void*)&writefds, sizeof(writefds)) < 0)
+        return -1;
+    acquire(&proc->selectlock);
+
+    // LAB4: Your Code Here
+
+    *readfds = retreadfds;
+    *writefds = retwritefds;
+
+    release(&proc->selectlock);
+    return 0;
+}
+
+

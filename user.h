@@ -1,5 +1,6 @@
 struct stat;
 struct rtcdate;
+typedef uint fd_set;
 
 // system calls
 int fork(void);
@@ -24,6 +25,16 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 
+int arp(char*, char*, char*, int);
+int arpserv(char*);
+int arp_receive(char*, int);
+
+// Select system call waits if all fds block
+// @param {fd_set *} readfds - Set of fds to read
+// @param {fd_set *} writefds - Set of fds to write
+// @return {int} -1 on error
+int select(int, fd_set *, fd_set *);
+
 // ulib.c
 int stat(char*, struct stat*);
 char* strcpy(char*, char*);
@@ -37,3 +48,5 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
+

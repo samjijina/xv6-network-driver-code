@@ -49,6 +49,13 @@ uartinit(void)
 }
 
 void
+uartprintcstr(char * p)
+{
+	for(; *p; p++)
+		uartputc(*p);
+}
+
+void
 uartputc(int c)
 {
   int i;
@@ -60,7 +67,7 @@ uartputc(int c)
   outb(COM1+0, c);
 }
 
-static int
+int
 uartgetc(void)
 {
   if(!uart)

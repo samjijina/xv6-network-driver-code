@@ -47,6 +47,8 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  initlock(&p->selectlock, "select");
+
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;

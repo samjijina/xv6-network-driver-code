@@ -20,3 +20,7 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+#define SYS_select 22
+#define SYS_arp	   23
+#define SYS_arpserv 24
+#define SYS_arp_receive 25

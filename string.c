@@ -78,6 +78,18 @@ strncpy(char *s, const char *t, int n)
   return os;
 }
 
+ int 
+ strnlen(const char *s, uint size) 
+ { 
+   int n; 
+  
+   for (n = 0; size > 0 && *s != '\0'; s++, size--) 
+     n++; 
+   return n; 
+ } 
+ 
+
+
 // Like strncpy but guaranteed to NUL-terminate.
 char*
 safestrcpy(char *s, const char *t, int n)
@@ -102,4 +114,33 @@ strlen(const char *s)
     ;
   return n;
 }
+
+
+int
+strcmp(const char *p, const char *q)
+{
+  while(*p && *p == *q)
+    p++, q++;
+  return (uchar)*p - (uchar)*q;
+}
+
+char*
+strchr(const char *s, char c)
+{
+  for(; *s; s++)
+    if(*s == c)
+      return (char*)s;
+  return 0;
+}
+
+// Return a pointer to the first occurrence of 'c' in 's',
+ // or a pointer to the string-ending null character if the string has no 'c'.
+ char *
+ strfind(const char *s, char c)
+ {
+   for (; *s; s++)
+     if (*s == c)
+       break;
+   return (char*)s;
+ }
 

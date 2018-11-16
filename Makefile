@@ -1,6 +1,10 @@
 OBJS = \
+	arp_frame.o\
+	arp.o\
+	nic.o\
 	bio.o\
 	console.o\
+	e1000.o\
 	exec.o\
 	file.o\
 	fs.o\
@@ -12,6 +16,7 @@ OBJS = \
 	log.o\
 	main.o\
 	mp.o\
+	pci.o\
 	picirq.o\
 	pipe.o\
 	proc.o\
@@ -19,6 +24,7 @@ OBJS = \
 	string.o\
 	swtch.o\
 	syscall.o\
+	sysarp.o\
 	sysfile.o\
 	sysproc.o\
 	timer.o\
@@ -26,7 +32,13 @@ OBJS = \
 	trap.o\
 	uart.o\
 	vectors.o\
+	util.o\
 	vm.o\
+	select.o\
+	monitor.o\
+	readline.o\
+	printfmt.o\
+	kdebug.o
 
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf
@@ -74,17 +86,20 @@ AS = $(TOOLPREFIX)gas
 LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
-CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer
-#CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -fvar-tracking -fvar-tracking-assignments -O0 -g -Wall -MD -gdwarf-2 -m32 -Werror -fno-omit-frame-pointer
+#CFLAGS = -fno-pic -static -nostdinc -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Wno-format -Wno-unused -Werror -fno-omit-frame-pointer
+CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O0 -Wall -MD -m32 -Werror -fno-omit-frame-pointer -Wno-unused -gstabs
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 ASFLAGS = -m32 -gdwarf-2 -Wa,-divide
 # FreeBSD ld wants ``elf_i386_fbsd''
 LDFLAGS += -m $(shell $(LD) -V | grep elf_i386 2>/dev/null)
 
+GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
+
 xv6.img: bootblock kernel fs.img
 	dd if=/dev/zero of=xv6.img count=10000
 	dd if=bootblock of=xv6.img conv=notrunc
 	dd if=kernel of=xv6.img seek=1 conv=notrunc
+	cp xv6.img xv62.img
 
 xv6memfs.img: bootblock kernelmemfs
 	dd if=/dev/zero of=xv6memfs.img count=10000
@@ -112,7 +127,7 @@ initcode: initcode.S
 	$(OBJDUMP) -S initcode.o > initcode.asm
 
 kernel: $(OBJS) entry.o entryother initcode kernel.ld
-	$(LD) $(LDFLAGS) -T kernel.ld -o kernel entry.o $(OBJS) -b binary initcode entryother
+	$(LD) $(LDFLAGS) -nostdlib -T kernel.ld -o kernel entry.o $(OBJS) $(GCC_LIB) -b binary initcode entryother
 	$(OBJDUMP) -S kernel > kernel.asm
 	$(OBJDUMP) -t kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > kernel.sym
 
@@ -134,10 +149,10 @@ tags: $(OBJS) entryother.S _init
 vectors.S: vectors.pl
 	perl vectors.pl > vectors.S
 
-ULIB = ulib.o usys.o printf.o umalloc.o
+ULIB = ulib.o usys.o printf.o umalloc.o printfmt.o 
 
 _%: %.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^ $(GCC_LIB)
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
@@ -157,6 +172,8 @@ mkfs: mkfs.c fs.h
 .PRECIOUS: %.o
 
 UPROGS=\
+	_arptest\
+	_arpserv\
 	_cat\
 	_echo\
 	_forktest\
@@ -168,20 +185,20 @@ UPROGS=\
 	_mkdir\
 	_rm\
 	_sh\
-	_stressfs\
-	_usertests\
 	_wc\
 	_zombie\
+	_forktree\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
+	cp fs.img fs2.img
 
 -include *.d
 
 clean: 
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*.o *.d *.asm *.sym vectors.S bootblock entryother \
-	initcode initcode.out kernel xv6.img fs.img kernelmemfs mkfs \
+	initcode initcode.out kernel xv6.img xv62.img fs.img fs2.img kernelmemfs mkfs \
 	.gdbinit \
 	$(UPROGS)
 
@@ -208,29 +225,53 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 2
+CPUS := 1 
 endif
-QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp $(CPUS) -m 512 $(QEMUEXTRA)
+QEMUOPTS =  -smp $(CPUS) -m 512 $(QEMUEXTRA)
+
+QEMUSERVOPTS = $(QEMUOPTS) -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw
+QEMUSERVOPTS += -netdev tap,id=net1,ifname=tap1,script=/etc/qemu-ifup \
+		-device e1000,netdev=net1,mac=12:13:14:15:16:27 -object filter-dump,id=f1,netdev=net1,file=qemuserv.pcap
+
+QEMUCLIENTOPTS = $(QEMUOPTS) -drive file=fs2.img,index=1,media=disk,format=raw -drive file=xv62.img,index=0,media=disk,format=raw
+QEMUCLIENTOPTS += -netdev tap,id=net0,ifname=tap0,script=/etc/qemu-ifup \
+			-device e1000,netdev=net0,mac=12:13:14:15:16:17 -object filter-dump,id=f0,netdev=net0,file=qemu.pcap
+
 
 qemu: fs.img xv6.img
-	$(QEMU) -serial mon:stdio $(QEMUOPTS)
+	$(QEMU) -serial mon:stdio $(QEMUCLIENTOPTS)
 
 qemu-memfs: xv6memfs.img
 	$(QEMU) -drive file=xv6memfs.img,index=0,media=disk,format=raw -smp $(CPUS) -m 256
 
 qemu-nox: fs.img xv6.img
-	$(QEMU) -nographic $(QEMUOPTS)
+	$(QEMU) -nographic $(QEMUCLIENTOPTS)
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
 qemu-gdb: fs.img xv6.img .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) -serial mon:stdio $(QEMUOPTS) -S $(QEMUGDB)
+	$(QEMU) -serial mon:stdio $(QEMUCLIENTOPTS) -S $(QEMUGDB)
 
 qemu-nox-gdb: fs.img xv6.img .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) -nographic $(QEMUOPTS) -S $(QEMUGDB)
+	$(QEMU) -nographic $(QEMUCLIENTOPTS) -S $(QEMUGDB)
+
+
+qemu-serv: fs.img xv6.img
+	$(QEMU) -serial mon:stdio $(QEMUSERVOPTS)
+
+qemu-nox-serv: fs.img xv6.img
+	$(QEMU) -nographic $(QEMUSERVOPTS)
+
+qemu-gdb-serv: fs.img xv6.img .gdbinit
+	@echo "*** Now run 'gdb'." 1>&2
+	$(QEMU) -serial mon:stdio $(QEMUSERVOPTS) -S $(QEMUGDB)
+
+qemu-nox-gdb-serv: fs.img xv6.img .gdbinit
+	@echo "*** Now run 'gdb'." 1>&2
+	$(QEMU) -nographic $(QEMUSERVOPTS) -S $(QEMUGDB)
 
 # CUT HERE
 # prepare dist for students
@@ -239,9 +280,9 @@ qemu-nox-gdb: fs.img xv6.img .gdbinit
 # check in that version.
 
 EXTRA=\
-	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
-	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
-	printf.c umalloc.c\
+	arptest.c arptestreceive.c mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
+	ln.c ls.c mkdir.c rm.c wc.c zombie.c\
+	printf.c umalloc.c printfmt.c forktree.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 

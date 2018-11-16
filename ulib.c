@@ -33,6 +33,17 @@ strlen(char *s)
   return n;
 }
 
+ int 
+ strnlen(const char *s, uint size) 
+ { 
+   int n; 
+  
+   for (n = 0; size > 0 && *s != '\0'; s++, size--) 
+     n++; 
+   return n; 
+ } 
+ 
+
 void*
 memset(void *dst, int c, uint n)
 {
@@ -103,3 +114,5 @@ memmove(void *vdst, void *vsrc, int n)
     *dst++ = *src++;
   return vdst;
 }
+
+

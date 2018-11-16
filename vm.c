@@ -10,6 +10,13 @@
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
+void
+tlb_invalidate(pde_t *pgdir, void *va)
+{
+
+
+}
+
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
 void
@@ -88,6 +95,39 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   return 0;
 }
 
+//
+// Reserve size bytes in the DEVSPACE region. 
+// Return the base of the reserved region.  size does *not*
+// have to be multiple of PGSIZE. This space is directly mapped, 
+// so no allocation or freeing needs to be done.
+//
+void *
+mmio_map_region(uint pa, uint size)
+{
+
+  //Devices are mapped directly so nothing needs to be done?
+  return (void *)pa;
+	
+  //static uint base = V2P(KERNBASE);
+
+  //char * va = P2V(pa);
+  //size = PGROUNDUP(size);
+  //base += size;
+  //if (base >= (V2P(KERNBASE + EXTMEM)))
+  //	panic("MMIO mappings exceeded I/O Limit");
+
+  //cprintf("Pa: %x, va: %p\n", pa, va);
+
+  //if(va < (char *)KERNBASE || va >(char *)(KERNBASE + EXTMEM))
+  //      panic("Va in mmio not correct!");
+
+  //cprintf("MMIO Mapping region: %p", va);
+  
+  //map_page(kern_pgdir, va, size, pa, PTE_W|PTE_PWT|PTE_PCD);
+  //return va;
+
+}
+
 // There is one page table per process, plus one that's used when
 // a CPU is not running any process (kpgdir). The kernel uses the
 // current process's page table during system calls and interrupts;
@@ -117,7 +157,7 @@ static struct kmap {
   uint phys_end;
   int perm;
 } kmap[] = {
- { (void*)KERNBASE, 0,             EXTMEM,    PTE_W}, // I/O space
+ { (void*)KERNBASE, 0,             EXTMEM,    PTE_W | PTE_PWT | PTE_PCD}, // I/O space
  { (void*)KERNLINK, V2P(KERNLINK), V2P(data), 0},     // kern text+rodata
  { (void*)data,     V2P(data),     PHYSTOP,   PTE_W}, // kern data+memory
  { (void*)DEVSPACE, DEVSPACE,      0,         PTE_W}, // more devices
