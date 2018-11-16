@@ -104,28 +104,7 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 void *
 mmio_map_region(uint pa, uint size)
 {
-
-  //Devices are mapped directly so nothing needs to be done?
-  return (void *)pa;
-	
-  //static uint base = V2P(KERNBASE);
-
-  //char * va = P2V(pa);
-  //size = PGROUNDUP(size);
-  //base += size;
-  //if (base >= (V2P(KERNBASE + EXTMEM)))
-  //	panic("MMIO mappings exceeded I/O Limit");
-
-  //cprintf("Pa: %x, va: %p\n", pa, va);
-
-  //if(va < (char *)KERNBASE || va >(char *)(KERNBASE + EXTMEM))
-  //      panic("Va in mmio not correct!");
-
-  //cprintf("MMIO Mapping region: %p", va);
-  
-  //map_page(kern_pgdir, va, size, pa, PTE_W|PTE_PWT|PTE_PCD);
-  //return va;
-
+  return NULL;
 }
 
 // There is one page table per process, plus one that's used when
