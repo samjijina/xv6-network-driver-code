@@ -33,7 +33,6 @@ struct pci_driver pci_attach_class[] = {
 // pci_attach_vendor matches the vendor ID and device ID of a PCI device
 struct pci_driver pci_attach_vendor[] = {
   // [E1000 5.2] QEMU emulates an 82540EM, specifically.
-  { 0x8086, 0x100e, &e1000_attach },
   { 0,      0,      0             },
 };
 
