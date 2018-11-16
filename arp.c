@@ -44,7 +44,11 @@ int recv_arp(const char *myIpAddr, bool expected_reply, uint8_t *received_from_m
 
 
   while (true) {
-    if (e1000_receive((char*)&eth, sizeof(eth) - 2)) {
+    int status = e1000_receive((char*)&eth, sizeof(eth) - 2);
+    if (status < 0) {
+      cprintf("Error: in e1000 receive\n");   
+      return -1;
+    } else if(status) {
       cprintf("received arp message!\n");
       if (parse_arp_packet(&eth, myIpAddr, expected_reply, received_from_mac, received_from_ip, arpMsgMacBytes) < 0) {
         continue;
