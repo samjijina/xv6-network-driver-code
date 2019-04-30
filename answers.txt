@@ -1,0 +1,5 @@
+File contains answers to questions asked in lab.
+
+Answer 1) For transmitting, the sender will packetize the message and send it over using ARP using the MAC address and IP of the reciever. The transmit thread will then sleep until the next packet to send is available and then wakes up when that condition is met. The transmit thread also keeps track of the send queue. When the send queue is full, the output environment will be reset, but it is better to use the interrupt mechanism.
+
+Answer 2) For recieve, the thread waits until a packet is inside the recieve queue. Once a packet arrives in the queue, the thread unblocks and is able to proceed with execution. The recieve function is also keeping track of the length of the queue.  When the recieve queue is empty, the enviorment will be reset and the user enviorment will sleep until it is woken up by the next incoming packet.

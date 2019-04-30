@@ -104,7 +104,7 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 void *
 mmio_map_region(uint pa, uint size)
 {
-  return NULL;
+  return (void*)pa;
 }
 
 // There is one page table per process, plus one that's used when

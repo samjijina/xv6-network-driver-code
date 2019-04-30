@@ -230,12 +230,14 @@ endif
 QEMUOPTS =  -smp $(CPUS) -m 512 $(QEMUEXTRA)
 
 QEMUSERVOPTS = $(QEMUOPTS) -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw
-QEMUSERVOPTS += -netdev tap,id=net1,ifname=tap1,script=/etc/qemu-ifup \
-		-device e1000,netdev=net1,mac=12:13:14:15:16:27 -object filter-dump,id=f1,netdev=net1,file=qemuserv.pcap
-
-QEMUCLIENTOPTS = $(QEMUOPTS) -drive file=fs2.img,index=1,media=disk,format=raw -drive file=xv62.img,index=0,media=disk,format=raw
-QEMUCLIENTOPTS += -netdev tap,id=net0,ifname=tap0,script=/etc/qemu-ifup \
-			-device e1000,netdev=net0,mac=12:13:14:15:16:17 -object filter-dump,id=f0,netdev=net0,file=qemu.pcap
+ QEMUSERVOPTS += -netdev tap,id=net1,ifname=tap1,script=/etc/qemu-ifup \
+   -device e1000,netdev=net1,mac=12:13:14:15:16:27 -net dump,file=qemuserv.pcap
+   #-device e1000,netdev=net1,mac=12:13:14:15:16:27 -object filter-dump,id=f1,netdev=net1,file=qemuserv.pcap
+ 
+ QEMUCLIENTOPTS = $(QEMUOPTS) -drive file=fs2.img,index=1,media=disk,format=raw -drive file=xv62.img,index=0,media=disk,format=raw
+ QEMUCLIENTOPTS += -netdev tap,id=net0,ifname=tap0,script=/etc/qemu-ifup \
+   -device e1000,netdev=net0,mac=12:13:14:15:16:17 -net dump,file=qemu.pcap
+   #-device e1000,netdev=net0,mac=12:13:14:15:16:17 -object filter-dump,id=f0,netdev=net0,file=qemu.pcap
 
 
 qemu: fs.img xv6.img

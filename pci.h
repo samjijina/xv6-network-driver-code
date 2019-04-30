@@ -30,5 +30,5 @@ struct pci_bus {
 
 int  pci_init(void);
 void pci_func_enable(struct pci_func *f);
-
+//int pci_e1000_attach_me(struct pci_func *pcif);
 #endif
