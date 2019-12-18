@@ -89,7 +89,7 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
-  release(&ptable.lock);
+  initlock(&p->selectlock, "select");
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){

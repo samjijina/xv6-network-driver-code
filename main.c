@@ -5,11 +5,30 @@
 #include "mmu.h"
 #include "proc.h"
 #include "x86.h"
+#include "pci.h"
+#include "monitor.h"
+
+#define LAB 6
 
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
 extern pde_t *kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
+
+#if LAB >= 2    // ...then leave this code out.
+#elif LAB >= 1
+// Test the stack backtrace function (lab 1 only)
+void
+test_backtrace(int x)
+{
+  cprintf("entering test_backtrace %d\n", x);
+  if (x > 0)
+    test_backtrace(x-1);
+  else
+    mon_backtrace(0, 0, 0);
+  cprintf("leaving test_backtrace %d\n", x);
+}
+#endif
 
 // Bootstrap processor starts running C code here.
 // Allocate a real stack and switch to it, first
@@ -19,20 +38,29 @@ main(void)
 {
   kinit1(end, P2V(4*1024*1024)); // phys page allocator
   kvmalloc();      // kernel page table
+  uartinit();      // serial port
+
   mpinit();        // detect other processors
   lapicinit();     // interrupt controller
   seginit();       // segment descriptors
   picinit();       // disable pic
   ioapicinit();    // another interrupt controller
   consoleinit();   // console hardware
-  uartinit();      // serial port
+  uartinit();      // serial port (Have to call it twice to get interrupt output)
+
+  cprintf("6828 decimal is %o octal!\n", 6828);
+  
   pinit();         // process table
   tvinit();        // trap vectors
   binit();         // buffer cache
   fileinit();      // file table
-  ideinit();       // disk 
+  ideinit();       // disk
+  pci_init();
+  if(!ismp)
+    timerinit();   // uniprocessor timer
   startothers();   // start other processors
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
+
   userinit();      // first user process
   mpmain();        // finish this processor's setup
 }
@@ -53,8 +81,21 @@ mpmain(void)
 {
   cprintf("cpu%d: starting %d\n", cpuid(), cpuid());
   idtinit();       // load idt register
+<<<<<<< HEAD
   xchg(&(mycpu()->started), 1); // tell startothers() we're up
   scheduler();     // start running processes
+=======
+  xchg(&cpu->started, 1); // tell startothers() we're up
+#if LAB == 1
+// Test the stack back trace
+  test_backtrace(5);
+
+  while (1)
+    monitor(0);
+#else
+   scheduler();     // start running processes
+#endif
+>>>>>>> lab5
 }
 
 pde_t entrypgdir[];  // For entry.S

@@ -103,6 +103,10 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_select(void);
+extern int sys_arp(void);
+extern int sys_arpserv(void);
+extern int sys_arp_receive(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -126,6 +130,10 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_select]  sys_select,
+[SYS_arp]     sys_arp,
+[SYS_arpserv] sys_arpserv,
+[SYS_arp_receive] sys_arp_receive
 };
 
 void
